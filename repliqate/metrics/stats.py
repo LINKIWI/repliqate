@@ -73,7 +73,7 @@ class StatsdClient(object):
 
         serialized_tags = ','.join(
             '{}{}{}'.format(key, tag_delimiter, value)
-            for key, value in tags.iteritems()
+            for key, value in tags.items()
         )
 
         return '{},{}'.format(metric, serialized_tags)
