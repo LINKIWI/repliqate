@@ -41,7 +41,7 @@ class Config(object):
 
         :param path: Path to the YAML configuration.
         """
-        self.config = yaml.load(open(path))
+        self.config = yaml.load(open(path), Loader=yaml.FullLoader)
 
         self._validate()
 
