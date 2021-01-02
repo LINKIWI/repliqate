@@ -24,7 +24,7 @@ class StreamProducerClient(object):
         :param message: Message bytes.
         """
         # Synchronous for guaranteed consistency to the client
-        return self.producer.send(self.topic, message).get()
+        return self.producer.send(self.topic, message.encode('utf-8')).get()
 
     def publish_many(self, messages):
         """
