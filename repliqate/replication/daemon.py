@@ -1,5 +1,6 @@
 import logging
 import time
+import traceback
 
 from repliqate.db.kv import KeyValueStoreClient
 from repliqate.db.sql import SQLDBClient
@@ -87,10 +88,19 @@ class ReplicationDaemon(object):
         self.logger.info('starting daemon: poll_interval_sec={}'.format(self.poll_interval))
 
         while True:
-            self._loop_task()
+            try:
+                rows, offset = self._replication_fetch_publish()
+                self.logger.info(
+                    'completed replication iteration: rows={} offset={}'.format(rows, offset)
+                )
+            except Exception:
+                self.logger.error(
+                    'encountered error during replication; will abort current iteration'
+                )
+                traceback.print_exc()
 
             self.logger.debug(
-                'sleeping before next replication: duration_sec={}'.format(self.poll_interval),
+                'sleeping before next iteration: duration_sec={}'.format(self.poll_interval),
             )
             time.sleep(self.poll_interval)
 
@@ -103,9 +113,11 @@ class ReplicationDaemon(object):
         self.db.close()
         self.stream.close()
 
-    def _loop_task(self):
+    def _replication_fetch_publish(self):
         """
         Execute a single iteration of the replication routine.
+
+        :return: A tuple of (number of rows published, new committed offset).
         """
         exec_timer = ExecutionTimer()
         kv_closure = self.kv.closure(
@@ -136,17 +148,20 @@ class ReplicationDaemon(object):
             )
         except Exception as e:
             self.logger.error('sql source read failure: exception={}'.format(e))
-            return self.metrics.emit_sql_read(
+            self.metrics.emit_sql_read(
                 success=False,
                 table=self.sql_table,
                 num_rows=0,
                 duration=exec_timer.duration(),
             )
+            raise e
 
         if not rows:
-            return self.logger.debug('no new rows since last fetch; aborting')
+            self.logger.debug('no new rows since last fetch; aborting')
+            return 0, -1
 
         self.logger.debug('serializing messages from fetched rows: num_rows={}'.format(len(rows)))
+        next_offset = -1
         messages = [
             Message(self.name, self.sql_table, row)
             for row in rows
@@ -168,17 +183,17 @@ class ReplicationDaemon(object):
                 )
             except Exception as e:
                 self.logger.error('kafka publication failure: exception={}'.format(e))
-                self.logger.error(
-                    'aborting current replication; future replication may reproduce this message',
-                )
-                return self.metrics.emit_kafka_publish(
+                self.metrics.emit_kafka_publish(
                     success=False,
                     topic=self.kafka_topic,
                     duration=exec_timer.duration(),
                 )
+                raise e
 
             self.logger.debug('storing next primary key offset: offset={}'.format(next_offset))
             with exec_timer.timer():
                 kv_closure.set(next_offset)
             self.metrics.emit_store_write(success=True, duration=exec_timer.duration())
             self.metrics.emit_offset_position(table=self.sql_table, offset=next_offset)
+
+        return len(rows), next_offset
