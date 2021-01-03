@@ -1,9 +1,6 @@
 pipeline {
     agent {
-        dockerfile {
-            dir '.ci'
-            label 'docker-executor'
-        }
+        label 'docker-executor'
     }
 
     options {
@@ -15,16 +12,44 @@ pipeline {
 
     stages {
         stage('Install') {
-            steps {
-                sh 'virtualenv --always-copy env'
-                sh '. env/bin/activate && make bootstrap'
+            parallel {
+                stage('linux/amd64') {
+                    agent {
+                        dockerfile {
+                            dir '.ci/amd64'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        sh 'python -m venv --system-site-packages env-amd64'
+                        sh '. env-amd64/bin/activate && make bootstrap'
+                    }
+                }
+                stage('linux/arm') {
+                    agent {
+                        dockerfile {
+                            dir '.ci/arm'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        sh 'python -m venv --system-site-packages env-arm'
+                        sh '. env-arm/bin/activate && make bootstrap'
+                    }
+                }
             }
         }
         stage('Test') {
             parallel {
                 stage('Lint') {
+                    agent {
+                        dockerfile {
+                            dir '.ci/amd64'
+                            reuseNode true
+                        }
+                    }
                     steps {
-                        sh '. env/bin/activate && make lint'
+                        sh '. env-amd64/bin/activate && make lint'
                     }
                 }
                 stage('Unit') {
@@ -34,11 +59,48 @@ pipeline {
                 }
             }
         }
+        stage('Build') {
+            parallel {
+                stage('linux/amd64') {
+                    agent {
+                        dockerfile {
+                            dir '.ci/amd64'
+                            reuseNode true
+                        }
+                    }
+                    environment {
+                        ARCHITECTURE = "linux-amd64"
+                    }
+                    steps {
+                        sh '. env-amd64/bin/activate && make build'
+                    }
+                }
+                stage('linux/arm') {
+                    agent {
+                        dockerfile {
+                            dir '.ci/arm'
+                            reuseNode true
+                        }
+                    }
+                    environment {
+                        ARCHITECTURE = "linux-arm"
+                    }
+                    steps {
+                        sh 'python -m venv env-arm'
+                        sh '. env-arm/bin/activate && make build'
+                    }
+                }
+            }
+        }
         stage('Release') {
+            agent {
+                docker {
+                    image 'docker.internal.kevinlin.info/infra/ci-base:0.3.0'
+                    reuseNode true
+                }
+            }
             steps {
-                sh '. env/bin/activate && make build'
-                sh 'virtualenv --relocatable env'
-                sh 'tar -czf release.tar.gz *'
+                sh 'tar -cvzf release.tar.gz dist/'
                 s3Upload(
                     bucket: 'internal',
                     path: "deploy/${env.JOB_NAME}/${env.GIT_COMMIT}/",

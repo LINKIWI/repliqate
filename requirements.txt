@@ -1,9 +1,18 @@
+altgraph==0.17
 flake8==3.8.4
 kafka-python==2.0.2
 mccabe==0.6.1
 pycodestyle==2.6.0
+pyelftools==0.27
 pyflakes==2.2.0
 PyYAML==5.3.1
 redis==3.5.3
+SCons==4.0.1
 SQLAlchemy==1.3.22
+staticx==0.12.0
 statsd==3.3.0
+
+# The pyinstaller bootloader is compiled from source on a per-platform basis.
+# The build environment puts the associated Python package in this directory for installation.
+# See .ci/**/Dockerfile
+/opt/pyinstaller/
