@@ -7,7 +7,7 @@ from repliqate.replication.daemon import ReplicationDaemon
 
 def main():
     # Logging configuration
-    logging.basicConfig(format='%(asctime)s - %(module)s - %(levelname)s: %(message)s')
+    logging.basicConfig(format='[%(asctime)s] [%(module)s] [%(levelname)s] %(message)s')
     logger = logging.getLogger('repliqate')
 
     # Command-line arguments
