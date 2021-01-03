@@ -1,5 +1,6 @@
 # Configuration
 config.yaml
+VERSION
 
 # Build artifacts
 build/
