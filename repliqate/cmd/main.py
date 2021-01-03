@@ -1,6 +1,7 @@
 import argparse
 import logging
 
+from repliqate.meta import constants
 from repliqate.meta.config import Config
 from repliqate.replication.daemon import ReplicationDaemon
 
@@ -32,7 +33,14 @@ def main():
         [logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG][min(args.verbose, 3)],
     )
 
-    logger.debug('loaded valid config: config={}'.format(config))
+    logger.info(
+        'initializing repliqate: config={} version={} verbosity={}'.format(
+            args.config,
+            constants.REPLIQATE_VERSION,
+            args.verbose,
+        )
+    )
+    logger.debug('parsed valid config: config={}'.format(config))
 
     ReplicationDaemon(config).start()
 
