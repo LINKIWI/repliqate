@@ -232,8 +232,10 @@ class KeyValueStoreClient(object):
             return '{}={}'.format(tag_key, tag_value)
 
         serialized_tags = '&'.join(
-            format_tag_kv_pair(tag_key, tag_value)
-            for tag_key, tag_value in tags.items()
+            sorted(
+                format_tag_kv_pair(tag_key, tag_value)
+                for tag_key, tag_value in tags.items()
+            )
         )
 
         return '{prefix}{delimiter}{namespace}{delimiter}{key}{delimiter}{tags}'.format(
