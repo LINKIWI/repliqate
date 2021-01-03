@@ -69,7 +69,8 @@ pipeline {
                         }
                     }
                     environment {
-                        ARCHITECTURE = "linux-amd64"
+                        ARCHITECTURE = 'linux-amd64'
+                        VERSION = "${env.GIT_COMMIT}"
                     }
                     steps {
                         sh '. env-amd64/bin/activate && make build'
@@ -83,7 +84,8 @@ pipeline {
                         }
                     }
                     environment {
-                        ARCHITECTURE = "linux-arm"
+                        ARCHITECTURE = 'linux-arm'
+                        VERSION = "${env.GIT_COMMIT}"
                     }
                     steps {
                         sh 'python -m venv env-arm'
