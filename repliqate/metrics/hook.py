@@ -1,5 +1,4 @@
-import socket
-
+from repliqate.meta import constants
 from repliqate.metrics.stats import StatsdClient
 
 
@@ -101,7 +100,7 @@ class StatsdMetricsHook(MetricsHook):
             prefix='repliqate',
             default_tags={
                 'name': name,
-                'host': socket.gethostname(),
+                'version': constants.REPLIQATE_VERSION,
             },
         )
 
