@@ -124,7 +124,7 @@ class ReplicationDaemon(object):
             with exec_timer.timer():
                 rows = self.db.query(
                     fields=[self.db.field(field) for field in self.sql_fields],
-                    criteria=self.db.field(self.sql_primary_key) > offset,
+                    criteria=self.db.field(self.sql_primary_key) > int(offset),
                     limit=self.sql_limit,
                 )
 
